@@ -1,0 +1,19 @@
+{
+  "name": "node-js",
+  "version": "1.0.0",
+  "description": "repo oficial del curso con node JS",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ralsogaray/node-js.git"
+  },
+  "author": "ralsogaray",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ralsogaray/node-js/issues"
+  },
+  "homepage": "https://github.com/ralsogaray/node-js#readme"
+}
