@@ -1,28 +1,22 @@
-const http = require("http")//luego de instalar el module, deposito el modulo en la constante 'http'
-const fs = require('fs')// luego de instalar el modulo fs, lo deposito en la constante --> fs = file sisteme
+
+const express = require('express')
+
 
 
 const port = 1000
 
-const server = (request, response) => {//reglas del servidor
 
+const app = express()
 
-    fs.readFile('front/index.html', (error, file) => { // le digo que archivo leer y luego una funcion para indicarle que hacer
-        if(error){
-            response.writeHead(404, {"content-Type" : "text/plain"}) //codigo de error y digo que es texto
-            response.end("Malio Sal(sa)...")
-        } else {
-            response.writeHead(200, {"Content-Type" : "text/html"})
-            response.end(file)
-        }
-    })  
+app.listen(port)
+/* //plantilla modelo para "endpoints" de express()
+app.TIPO_HTTP("/ruta",function(request, response){ <<<-------- //anatomia modelo de como crear rutas en mi servidor con express. Esta el tipo de peticion y la ruta con la cual se va a acceder al codigo
 
-    
-}
+})*/
 
-
-
-http.createServer( server ).listen( port ) //funcion crear servidor, dentro de los () voy a programar las reglas del servidor. El servidor va a escuchar todas las peticiones que entren por el servidor 1000
+app.get("/contacto", function(request, response){  //anatomia de como crear rutas en mi servidor con express. Esta el tipo de peticion y la ruta con la cual se va a acceder al codigo
+    response.end(`DESDE ACA VAMOS A CONTACTARNOS`)
+})
 
 
 
