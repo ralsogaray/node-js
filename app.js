@@ -75,7 +75,7 @@ app.post("/enviar",(request, response) => { //<<<-------- anatomia modelo de com
     }) 
 
 
-    return response.end("mira la consolita mono")
+    //return response.end("mira la consolita mono")
 
     //const validate = schema.validate(contacto) //valido el objeto contacto
 
