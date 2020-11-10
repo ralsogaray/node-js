@@ -3,8 +3,12 @@ const express = require('express')
 const nodemailer = require("nodemailer"); //luego de instalar el module de nodemailer, lo llamo y deposito en la constante
 const joi = require('joi')//incluyo el modulo
 const expressFileUpload = require("express-fileupload") //luego de instalar el modulo...
+const mongoDB = require('mongodb').MongoClient //ACLARAR PARA QUE ES MONGOCLIENT
+
 
 const app = express()
+
+const API = express.Router() // <--- desde este momendo, API puede tener sus propias rutas separadas de 'app'
 
 const port = 1000
 
@@ -37,61 +41,59 @@ const miniOutlook = nodemailer.createTransport({ //se configura quien va a hacer
 });*/
 
 app.listen(port)
-// -------------- MIDDLEWARES ------------------ 
 
+// -------------- MIDDLEWARES ------------------ // 
 app.use( express.static( 'public' ) ) // con esto le digo q primero busque en la carpeta public y si no encuentra lo q busca ahi, buscara en app.js
 app.use( express.urlencoded({ extended : true}) ) //PROCESO LOS DATOS ENVIADOS EN URLENCODED y los transformo en un objeto. Convierte de application/x-www-form-urlencoded a objeto
 app.use( express.json() )//<-- transforma de aplication/json a objeto. 
 app.use( expressFileUpload() )// <---- de "multipart/form-data" a objeto + file.
 
+app.use("/api", API )
+// -------------- MIDDLEWARES ------------------ //
 
 /* //plantilla modelo para "endpoints" de express()
 app.TIPO_HTTP("/ruta",function(request, response){ <<<-------- //anatomia modelo de como crear rutas en mi servidor con express. Esta el tipo de peticion y la ruta con la cual se va a acceder al codigo
 })*/
 
-app.get("/contacto", function(request, response){  //anatomia de como crear rutas en mi servidor con express. Esta el tipo de peticion y la ruta con la cual se va a acceder al codigo
-    //response.end(`DESDE ACA VAMOS A CONTACTARNOS`)
-
-})
 
 
 
-app.post("/enviar",(request, response) => { //<<<-------- anatomia modelo de como crear rutas en mi servidor con express. Esta el tipo de peticion y la ruta con la cual se va a acceder al codigo
+
+API.post("/enviar",(request, response) => { //<<<-------- anatomia modelo de como crear rutas en mi servidor con express. Esta el tipo de peticion y la ruta con la cual se va a acceder al codigo
     
     const contacto = request.body 
-    const { archivo } = request.files // deposito en la constante, la parte archivo de los files 
     
-    //console.log(archivo) 
+    /*
+    const { archivo } = request.files // deposito en la constante, la parte 'files' del request enviado; le digo que extraiga del objeto 'files' la propiedad archivo
+    
+    console.log(archivo) 
 
-    const ubicacion = __dirname + '/public/uploads/' + archivo.name// <---- a donde mandamos los archivos
-
+    const ubicacion = __dirname + '/public/uploads/' + archivo.name// <---- a donde mandamos los archivos; se pone la ruta completa
+                                                        //es archivo.name porque en el input del HTML, se llama archivo; del input se recibe un objeto que representa la imagen
+    console.log("Se va a guardar en...")
     console.log(ubicacion)
 
-    archivo.mv(ubicacion, error => { //le digo archivo, vaya a tal ubicacion
+    //archivo.mv()<--- mv es una funcion para mover archivos. 
+    archivo.mv(ubicacion, error => { //le digo archivo, vaya a tal ubicacion; ubicacion la constante! error es por si llega a fallar
         if(error){
             console.log('no se movio')
         }
-        
-    }) 
-
-
+    })*/
     //return response.end("mira la consolita mono")
-
     //const validate = schema.validate(contacto) //valido el objeto contacto
 
-    const { error, value } = schema.validate({ contacto }); //error y value son objetos
+    const { error, value } = schema.validate(contacto, { abortEarly : false }); //error y value son objetos, extraigo propiedades de un objeto. Si yo se de antemano que el resultado de validate va a ser propiedad error o propiedad value, los puedo extraer. Al extraerlas, las puedo utilizar despues, como en el If; son constantes/variables sueltas
     //console.log(validate)
     
     if( error ){
-        console.log(error)
+        //console.log( error ) //para ver como es el objeto error
 
-        const msg = {
-            error: error.details.map( e => { //e representa elemento del map
-                console.log(e.message)
-            }) //funciona como for each `pero construye un nuevo array con datos
+        const msg = { 
+            ok : false,
+            error: error.details.map( e => e.message.replace(/"/g, "") )  
         }
 
-        response.end(error.details[0].message)
+        response.end( msg )
     } else {
         miniOutlook.sendMail({
             from: contacto.correo, // sender address 
@@ -103,8 +105,95 @@ app.post("/enviar",(request, response) => { //<<<-------- anatomia modelo de com
         })
         response.end('correo electronico enviado, Sr. Admin.')
     }
+})
+
+///////////////////////////
+
+
+
+app.get("/contacto", function(request, response){  //anatomia de como crear rutas en mi servidor con express. Esta el tipo de peticion y la ruta con la cual se va a acceder al codigo
     
+    
+
 })
 
 
 
+/*  -------->  API  <----------  */ 
+
+
+/* CREATE */
+API.post("/v1/pelicula", (request, response) => {
+    const respuesta = {
+        msg: "Aca vamos a crear peliculas",
+    }
+
+    response.json(respuesta) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
+})
+
+/* READE */
+API.get("/v1/pelicula", (request, response) => {
+    //db.getCollection('peliculas').find({})
+    
+    const respuesta = {
+        msg: "Aca vamos a ver el listado de peliculas",
+    }
+    response.json(respuesta) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
+})
+
+/* UPDATE */
+API.put("/v1/pelicula", (request, response) => {
+    //db.getCollection('peliculas').find({})
+    
+    const respuesta = {
+        msg: "Aca vamos a actualizar el listado de peliculas",
+    }
+    response.json(respuesta) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
+})
+
+/* DELETE */
+API.delete("/v1/pelicula", (request, response) => {
+    //db.getCollection('peliculas').find({})
+    
+    const respuesta = {
+        msg: "Aca vamos eliminar el listado de peliculas",
+    }
+    response.json(respuesta) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
+})
+
+/////////////////
+/*
+async function main(){
+    /**
+     * Connection URI. Update <username>, <password>, and <your-cluster-url> to reflect your cluster.
+     * See https://docs.mongodb.com/ecosystem/drivers/node/ for more details
+     *//*
+    const uri = "mongodb+srv://ralsogaray:317maluz@nerdflix.scqvp.mongodb.net/<dbname>?retryWrites=true&w=majority";
+
+
+    const client = new MongoClient(uri);
+ 
+    try {
+        // Connect to the MongoDB cluster
+        await client.connect();
+ 
+        // Make the appropriate DB calls
+        await  listDatabases(client);
+ 
+    } catch (e) {
+        console.error(e);
+    } finally {
+        await client.close();
+    }
+}
+
+main().catch(console.error);
+
+
+
+async function listDatabases(client){
+    databasesList = await client.db().admin().listDatabases();
+ 
+    console.log("Databases:");
+    databasesList.databases.forEach(db => console.log(` - ${db.name}`));
+};*/
