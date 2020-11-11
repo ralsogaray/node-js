@@ -3,12 +3,18 @@ const express = require('express')
 const nodemailer = require("nodemailer"); //luego de instalar el module de nodemailer, lo llamo y deposito en la constante
 const joi = require('joi')//incluyo el modulo
 const expressFileUpload = require("express-fileupload") //luego de instalar el modulo...
-const mongoDB = require('mongodb').MongoClient //ACLARAR PARA QUE ES MONGOCLIENT
+const { MongoClient } = require('mongodb') //ACLARAR PARA QUE ES MONGOCLIENT --> extraigo la propiedad MongoClient de mongoDB
+
 
 
 const app = express()
 
 const API = express.Router() // <--- desde este momendo, API puede tener sus propias rutas separadas de 'app'
+
+/*
+const {HOST_MAIL, 
+    PUERTO_MAIL, CASILLA_MAIL,
+    CLAVE_MAIL } = process.env */
 
 const port = 1000
 
@@ -30,6 +36,8 @@ const schema = joi.object({ //esquema para validar el formulario
     mensaje : joi.string().max(100).required(),
     archivo : joi.string().required()
 })
+
+const ConnectionString = `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASS}@${process.env.MONGODB_HOST}/${process.env.MONGODB_BASE}?retryWrites=true&w=majority`
 
 /*
 const miniOutlook = nodemailer.createTransport({ //se configura quien va a hacer el envío de los datos pòr mail
@@ -132,13 +140,17 @@ API.post("/v1/pelicula", (request, response) => {
 })
 
 /* READE */
-API.get("/v1/pelicula", (request, response) => {
-    //db.getCollection('peliculas').find({})
+API.get("/v1/pelicula", async (request, response) => {
+    //CONECTAR A LA DB
+    const client = await MongoClient.connect(ConnectionString, { useUnifiedTopology : true })  //useUnifiedTopology --> explicar
     
-    const respuesta = {
-        msg: "Aca vamos a ver el listado de peliculas",
-    }
-    response.json(respuesta) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
+    const db = await client.db('catalogo')
+    
+    const peliculas = await db.collection('peliculas').find({}).toArray()
+
+    console.log(peliculas)
+    
+    response.json(peliculas) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
 })
 
 /* UPDATE */
@@ -164,22 +176,22 @@ API.delete("/v1/pelicula", (request, response) => {
 /////////////////
 /*
 async function main(){
-    /**
+    /*
      * Connection URI. Update <username>, <password>, and <your-cluster-url> to reflect your cluster.
      * See https://docs.mongodb.com/ecosystem/drivers/node/ for more details
-     *//*
-    const uri = "mongodb+srv://ralsogaray:317maluz@nerdflix.scqvp.mongodb.net/<dbname>?retryWrites=true&w=majority";
+     */ /*
+    const uri = "mongodb+srv://ralsogaray:317maluz@nerdflix.scqvp.mongodb.net/catalogo?retryWrites=true&w=majority";
 
 
-    const client = new MongoClient(uri);
- 
+    const client = new mongoDB(uri);
+
     try {
         // Connect to the MongoDB cluster
         await client.connect();
- 
+
         // Make the appropriate DB calls
         await  listDatabases(client);
- 
+
     } catch (e) {
         console.error(e);
     } finally {
