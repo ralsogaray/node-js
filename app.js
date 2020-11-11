@@ -39,6 +39,14 @@ const schema = joi.object({ //esquema para validar el formulario
 
 const ConnectionString = `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASS}@${process.env.MONGODB_HOST}/${process.env.MONGODB_BASE}?retryWrites=true&w=majority`
 
+const ConnectionDB = async () => {
+    //CONECTAR A LA DB
+    const client = await MongoClient.connect(ConnectionString, { useUnifiedTopology : true })  //useUnifiedTopology --> explicar
+    
+    const db = await client.db('catalogo')
+
+    return db
+}
 /*
 const miniOutlook = nodemailer.createTransport({ //se configura quien va a hacer el envío de los datos pòr mail
     service: 'gmail',
@@ -131,7 +139,10 @@ app.get("/contacto", function(request, response){  //anatomia de como crear ruta
 
 
 /* CREATE */
-API.post("/v1/pelicula", (request, response) => {
+API.post("/v1/pelicula", async (request, response) => {
+    
+    const db = await ConnectionDB()
+
     const respuesta = {
         msg: "Aca vamos a crear peliculas",
     }
@@ -141,21 +152,23 @@ API.post("/v1/pelicula", (request, response) => {
 
 /* READE */
 API.get("/v1/pelicula", async (request, response) => {
-    //CONECTAR A LA DB
-    const client = await MongoClient.connect(ConnectionString, { useUnifiedTopology : true })  //useUnifiedTopology --> explicar
     
-    const db = await client.db('catalogo')
-    
+    const db = await ConnectionDB()
+
     const peliculas = await db.collection('peliculas').find({}).toArray()
 
     console.log(peliculas)
+
+    db.close()
     
     response.json(peliculas) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
 })
 
 /* UPDATE */
-API.put("/v1/pelicula", (request, response) => {
+API.put("/v1/pelicula", async (request, response) => {
     //db.getCollection('peliculas').find({})
+
+    const db = await ConnectionDB()
     
     const respuesta = {
         msg: "Aca vamos a actualizar el listado de peliculas",
@@ -164,8 +177,10 @@ API.put("/v1/pelicula", (request, response) => {
 })
 
 /* DELETE */
-API.delete("/v1/pelicula", (request, response) => {
+API.delete("/v1/pelicula", async(request, response) => {
     //db.getCollection('peliculas').find({})
+
+    const db = await ConnectionDB()
     
     const respuesta = {
         msg: "Aca vamos eliminar el listado de peliculas",
