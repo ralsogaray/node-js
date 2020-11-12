@@ -3,14 +3,14 @@ const express = require('express')
 const nodemailer = require("nodemailer"); //luego de instalar el module de nodemailer, lo llamo y deposito en la constante
 const joi = require('joi')//incluyo el modulo
 const expressFileUpload = require("express-fileupload") //luego de instalar el modulo...
-const { MongoClient } = require('mongodb') //ACLARAR PARA QUE ES MONGOCLIENT --> extraigo la propiedad MongoClient de mongoDB
+const { MongoClient, ObjectId } = require('mongodb') //ACLARAR PARA QUE ES MONGOCLIENT --> extraigo la propiedad MongoClient de mongoDB
 
 
 
 const app = express()
 
 const API = express.Router() // <--- desde este momendo, API puede tener sus propias rutas separadas de 'app'
-
+    //API es como un alias de app o un subapp, un minion de app jajaja 
 /*
 const {HOST_MAIL, 
     PUERTO_MAIL, CASILLA_MAIL,
@@ -37,16 +37,21 @@ const schema = joi.object({ //esquema para validar el formulario
     archivo : joi.string().required()
 })
 
+
+////////////////// CONECTAR A LA DB ///////////////////
 const ConnectionString = `mongodb+srv://${process.env.MONGODB_USER}:${process.env.MONGODB_PASS}@${process.env.MONGODB_HOST}/${process.env.MONGODB_BASE}?retryWrites=true&w=majority`
 
 const ConnectionDB = async () => {
-    //CONECTAR A LA DB
-    const client = await MongoClient.connect(ConnectionString, { useUnifiedTopology : true })  //useUnifiedTopology --> explicar
+    
+    const client = await MongoClient.connect(ConnectionString, { useUnifiedTopology : true })  //useUnifiedTopology --> es una propiedad que me va a permitir que los mismos métodos que puedo usar de manera generica con una base de datos MongoDb, me puedan servir para otras bases de datos NoSQL y que los metodos funcionen. El Cliente de mongoDB va funcionar en otras bases de datos NoSQL
     
     const db = await client.db('catalogo')
 
-    return db
+    return db;
 }
+////////////////// CONECTAR A LA DB /////////////////// 
+
+
 /*
 const miniOutlook = nodemailer.createTransport({ //se configura quien va a hacer el envío de los datos pòr mail
     service: 'gmail',
@@ -99,16 +104,15 @@ API.post("/enviar",(request, response) => { //<<<-------- anatomia modelo de com
     //const validate = schema.validate(contacto) //valido el objeto contacto
 
     const { error, value } = schema.validate(contacto, { abortEarly : false }); //error y value son objetos, extraigo propiedades de un objeto. Si yo se de antemano que el resultado de validate va a ser propiedad error o propiedad value, los puedo extraer. Al extraerlas, las puedo utilizar despues, como en el If; son constantes/variables sueltas
-    //console.log(validate)
+    //console.log(validate)                 //contacto es el objeto a validar, abortEarly : false --> con esa propiedad recorre todo el objeto contacto y devuelve todos los errores, abort false evita q frene al encontrar el primer error
     
     if( error ){
         //console.log( error ) //para ver como es el objeto error
 
         const msg = { 
             ok : false,
-            error: error.details.map( e => e.message.replace(/"/g, "") )  
+            error: error.details.map( e => e.message.replace(/"/g, "") )  //con map, recorro el array "details" y extraigo el mensaje, replace lo uso para reemplazar las comillas vacias, lo vamos a ver mas adelante
         }
-
         response.end( msg )
     } else {
         miniOutlook.sendMail({
@@ -129,16 +133,23 @@ API.post("/enviar",(request, response) => { //<<<-------- anatomia modelo de com
 
 app.get("/contacto", function(request, response){  //anatomia de como crear rutas en mi servidor con express. Esta el tipo de peticion y la ruta con la cual se va a acceder al codigo
     
-    
 
 })
 
 
 
+
+
+////////////////////////////////////////////////////
+////////////////////////////////////////////////////
+////////////////////////////////////////////////////
+////////////////////////////////////////////////////
+
+
 /*  -------->  API  <----------  */ 
 
 
-/* CREATE */
+/* /////////////////CREATE /////////////////*/
 API.post("/v1/pelicula", async (request, response) => {
     
     const db = await ConnectionDB()
@@ -150,25 +161,59 @@ API.post("/v1/pelicula", async (request, response) => {
     response.json(respuesta) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
 })
 
-/* READE */
+/* /////////////////READE///////////////// */
 API.get("/v1/pelicula", async (request, response) => {
+    
+    console.log( request.query.id ) // <--- contiene toda la informacion HTTP query enviada 
     
     const db = await ConnectionDB()
 
-    const peliculas = await db.collection('peliculas').find({}).toArray()
+    const peliculas = await db.collection('peliculas').find({}).toArray() //con toArray() me devuelve en forma de array las peliculas de la base de datos
 
     console.log(peliculas)
 
-    db.close()
+
     
     response.json(peliculas) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
 })
 
-/* UPDATE */
+API.get("/v1/pelicula/:id", async (request, response) => {
+
+
+    const {id} = request.params  //exrtraigo el ID de params
+
+    try{
+        const db = await ConnectionDB()
+        const peliculas = await db.collection('peliculas')
+
+        const busqueda = {
+            "_id" : ObjectId( id )  //el ID lo captura de la peticion HTTP
+        }
+
+        const resultado = await peliculas.find( busqueda ).toArray()
+
+        return  response.json( {"ok" : "true", resultado })
+    } catch(error){
+        
+        return response.json( {"ok" : "falso", "msg" : "Película no encontrada :("} )
+
+    }
+
+
+})
+
+
+
+
+
+/* /////////////////UPDATE///////////////// */
 API.put("/v1/pelicula", async (request, response) => {
     //db.getCollection('peliculas').find({})
 
+
     const db = await ConnectionDB()
+
+    const peliculas = await db.collection('peliculas')
     
     const respuesta = {
         msg: "Aca vamos a actualizar el listado de peliculas",
@@ -176,7 +221,7 @@ API.put("/v1/pelicula", async (request, response) => {
     response.json(respuesta) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
 })
 
-/* DELETE */
+/*///////////////// DELETE ///////////////////*/
 API.delete("/v1/pelicula", async(request, response) => {
     //db.getCollection('peliculas').find({})
 
@@ -187,40 +232,3 @@ API.delete("/v1/pelicula", async(request, response) => {
     }
     response.json(respuesta) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
 })
-
-/////////////////
-/*
-async function main(){
-    /*
-     * Connection URI. Update <username>, <password>, and <your-cluster-url> to reflect your cluster.
-     * See https://docs.mongodb.com/ecosystem/drivers/node/ for more details
-     */ /*
-    const uri = "mongodb+srv://ralsogaray:317maluz@nerdflix.scqvp.mongodb.net/catalogo?retryWrites=true&w=majority";
-
-
-    const client = new mongoDB(uri);
-
-    try {
-        // Connect to the MongoDB cluster
-        await client.connect();
-
-        // Make the appropriate DB calls
-        await  listDatabases(client);
-
-    } catch (e) {
-        console.error(e);
-    } finally {
-        await client.close();
-    }
-}
-
-main().catch(console.error);
-
-
-
-async function listDatabases(client){
-    databasesList = await client.db().admin().listDatabases();
- 
-    console.log("Databases:");
-    databasesList.databases.forEach(db => console.log(` - ${db.name}`));
-};*/
