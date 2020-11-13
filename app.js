@@ -194,7 +194,7 @@ API.get("/v1/pelicula", async (request, response) => {
 API.get("/v1/pelicula/:id", async (request, response) => {
 
 
-    const {id} = request.params  //exrtraigo el ID de params
+    const {id} = request.params  //exrtraigo el ID de params que es lo que envia la peticion http
 
     try{
         const db = await ConnectionDB()
@@ -210,10 +210,7 @@ API.get("/v1/pelicula/:id", async (request, response) => {
     } catch(error){
         
         return response.json( {"ok" : "falso", "msg" : "Película no encontrada :("} )
-
     }
-
-
 })
 
 
@@ -221,16 +218,35 @@ API.get("/v1/pelicula/:id", async (request, response) => {
 
 
 /* /////////////////UPDATE///////////////// */
-API.put("/v1/pelicula", async (request, response) => {
+API.put("/v1/pelicula/:id", async (request, response) => {
     //db.getCollection('peliculas').find({})
 
+    const {id} = request.params  //exrtraigo el ID de params que es lo que envia la peticion http
+    
+    const pelicula = request.body
 
     const db = await ConnectionDB()
 
     const peliculas = await db.collection('peliculas')
+
+    const busqueda = {
+        "_id" : ObjectId( id )  //el ID lo captura de la peticion HTTP
+    }
+
+    const nuevaData = { //objeto auxiliar para pasar como parámetro en updateOne()
+        $set : { //aca van las propiedades que voy a actualizar
+            ...pelicula
+        }
+    }
+
+    const { result } = await peliculas.updateOne(busqueda, nuevaData)
+    
+    const { ok } = result
+    
     
     const respuesta = {
-        msg: "Aca vamos a actualizar el listado de peliculas",
+        ok,
+        msg: (ok == 1) ? "Pelicula actualizada correctamente" : "Error al actualizar la película"
     }
     response.json(respuesta) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
 })
