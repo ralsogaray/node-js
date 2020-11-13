@@ -152,10 +152,24 @@ app.get("/contacto", function(request, response){  //anatomia de como crear ruta
 /* /////////////////CREATE /////////////////*/
 API.post("/v1/pelicula", async (request, response) => {
     
+    const pelicula = request.body
+
     const db = await ConnectionDB()
 
+    const peliculas = await db.collection('peliculas')
+
+
+    const {result} = await peliculas.insertOne( pelicula )
+
+    const { ok } = result
+    
+    
+    console.log(result)
+
+
     const respuesta = {
-        msg: "Aca vamos a crear peliculas",
+        ok,
+        msg: (ok == 1) ? "Pelicula guardada correctamente" : "Error al guardar la película"
     }
 
     response.json(respuesta) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
