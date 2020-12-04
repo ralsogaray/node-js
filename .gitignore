@@ -1,3 +1,4 @@
 node_modules/
 .env
 casapapel.html
+.vercel
