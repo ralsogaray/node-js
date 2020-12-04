@@ -19,7 +19,7 @@ const API = express.Router() // <--- desde este momendo, API puede tener sus pro
 
 const port = 1000
 
-//SE DEPOSITA EN MAIL LA CONFIGURACIO  PARA QUE NODEMAILER ENVIE EL MAIL
+//SE DEPOSITA EN MINIOUTLOOK LA CONFIGURACION PARA QUE NODEMAILER ENVIE EL MAIL
 const miniOutlook = nodemailer.createTransport({ 
     host: process.env.HOST_MAIL, 
     port: process.env.PUERTO_MAIL,
@@ -180,7 +180,7 @@ API.post("/v1/pelicula", async (request, response) => {
 
 
 
-/* ///////////////// ----< READE >-----///////////////// */
+/* ///////////////// ----< READE ALL>-----///////////////// */
 API.get("/v1/pelicula", async (request, response) => { //verifyToken
     
     console.log( request.query.id ) // <--- contiene toda la informacion HTTP query enviada. Los datos "query string" enviados mediante la petición HTTP son capturados mediante la propiedad query y se disponen como un objeto, POR ESO request.query.id --> Extraigo el Id del query
@@ -193,12 +193,12 @@ API.get("/v1/pelicula", async (request, response) => { //verifyToken
         console.log(peliculas)
     
         return response.json(peliculas) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
-    }catch{
+    }catch(error){
         return response.json( {"ok" : false, "msg" : "Películas no encontrada :("} )
     }
 })
 
-
+/* ///////////////// ----< READE ONE >-----///////////////// */
 API.get("/v1/pelicula/:id", async (request, response) => { //al poner ID en la ruta, accedo a la pelicula de la base de datos que corresponda segun el ID ingresado en la peticion HTTP. Reconoe que es ID por el /:id, si pusiere otra palabra como "codigo" buscaria la pelicula por codigo (no hay)
 
     const { id } = request.params  //exrtraigo el ID de params que es lo que envia la peticion http. "Params" es el objeto que contiene todos los parametors que configuramos en la URL ":/id"; si agregase ":/cosa/:sandijuela" en params va a haber una propiedad cosa y una sandijuela 
@@ -230,27 +230,31 @@ API.put("/v1/pelicula/:id", async (request, response) => {
     
     const pelicula = request.body // para hacer la actualización correspondiente
 
-    const db = await ConnectionDB()
+    try{
+        const db = await ConnectionDB()
 
-    const peliculas = await db.collection('peliculas')
+        const peliculas = await db.collection('peliculas')
 
-    const busqueda = { "_id" : ObjectId( id ) } //el ID lo captura de la peticion HTTP
-    
-    const nuevaData = { //objeto auxiliar para pasar como parámetro en updateOne(), va a llevar acabo el proceso de actualizacion
-        $set : {            //"$set" asi se escribe la propiedad. 
-            //aca van las propiedades que se van a actualizar
-            ...pelicula // "..." asignacion por destructuracion!! Los "..." rompen el objeto y convierten todas sus propiedades en variables sueltas. Le asigno al objeto lo que tiene pelicula pero solo lo asignado a pelicula. Extraigo las propiedades del objeto. Si envie solo una propiedad, solo se va a ctualizar la enviada, si envie varias, todas las enviadas
+        const busqueda = { "_id" : ObjectId( id ) } //el ID lo captura de la peticion HTTP
+        
+        const nuevaData = { //objeto auxiliar para pasar como parámetro en updateOne(), va a llevar acabo el proceso de actualizacion
+            $set : {            //"$set" asi se escribe la propiedad. 
+                //aca van las propiedades que se van a actualizar
+                ...pelicula // "..." asignacion por destructuracion!! Los "..." rompen el objeto y convierten todas sus propiedades en variables sueltas. Le asigno al objeto lo que tiene pelicula pero solo lo asignado a pelicula. Extraigo las propiedades del objeto. Si envie solo una propiedad, solo se va a ctualizar la enviada, si envie varias, todas las enviadas
+            }
+        } 
+        const { result } = await peliculas.updateOne(busqueda, nuevaData) // busqueda es el ID, nuevaData va a ser un nuevo objeto que va a reemplazar al viejo
+        
+        const { ok } = result
+        
+        const respuesta = {
+            ok,
+            msg: (ok == 1) ? "Pelicula actualizada correctamente" : "Error al actualizar la película"
         }
-    } 
-    const { result } = await peliculas.updateOne(busqueda, nuevaData) // busqueda e s el ID, nuevaData va a ser un nuevo objeto que va a reemplazar al viejo
-    
-    const { ok } = result
-    
-    const respuesta = {
-        ok,
-        msg: (ok == 1) ? "Pelicula actualizada correctamente" : "Error al actualizar la película"
+        return response.json(respuesta) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
+    } catch (error){
+        return response.json( {"ok" : false, "msg" : "Película no actualizada :("} )
     }
-    response.json(respuesta) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
 })
 
 /*///////////////// DELETE ///////////////////*/
@@ -279,7 +283,7 @@ API.delete("/v1/pelicula/:id", async(request, response) => {
     }
 })
 
-/* AUTENTICACION */ 
+/*/////////////// AUTENTICACION //////////////*/ 
 
 API.post("/v1/auth", (request, response) => {
     
