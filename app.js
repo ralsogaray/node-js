@@ -48,8 +48,9 @@ const ConnectionDB = async () => {
     const client = await MongoClient.connect(ConnectionString, { useUnifiedTopology : true })  //useUnifiedTopology --> es una propiedad que me va a permitir que los mismos métodos que puedo usar de manera generica con una base de datos MongoDb, me puedan servir para otras bases de datos NoSQL y que los metodos funcionen. El Cliente de mongoDB va funcionar en otras bases de datos NoSQL
     
     const db = await client.db('catalogo')
-
+    //await client.close() -- por que no anda??
     return db;
+    
 }
 ///////////////////////////////////// 
 
@@ -336,14 +337,16 @@ API.post("/v1/auth", (request, response) => {
 })
 // how to set time zone en mi scriopt .. modulo set-tz
 
-API.post("/v1/register", (request, response) =>{ //crear proceso de registro
+API.post("/v1/register", (request, response) =>{ //crear proceso de registro - usar postman
     const { name, email, pass } = request.body
+
+    
 
     const saltRounds = 10; //<-- CONFIGURACION ESPECIAL PARA LAS CONTRASEÑAS. Le agrega caracteres especiales a la contraseña encriptada. Esos caracteres van a servir para comparar una password q esta entrando con la ya guardada en la DB
     
     
     //USO LA LIBRERIA BCRYPT sumado al metodo hash()
-    bcrypt.hash(pass, saltRounds, (error, hash) =>{ // pass seria la contraseña en formato plano que llego por el form, le asigno a la contraseña el condimento (salt); luego el call back que captura el error y si no hay error va a obtener el hash (contraseña encriptada)
+    bcrypt.hash(pass, saltRounds, async (error, hash) =>{ // pass seria la contraseña en formato plano que llego por el form, le asigno a la contraseña el condimento (salt); luego el call back que captura el error y si no hay error va a obtener el hash (contraseña encriptada)
 
         if(error){
             console.log("La pass no se encriptó!")
@@ -352,11 +355,39 @@ API.post("/v1/register", (request, response) =>{ //crear proceso de registro
             console.log( hash )
             // ACA HAY QUE GUARDAR EL USUARIO CON SU PASS EN LA DB
             //hacer como en crear peliculas!!
+
+            const usuario = {
+                name: name,
+                email: email,
+                pass: hash
+            }
+            console.log(usuario)
+            
+            try{
+                const db = await ConnectionDB() 
+        
+                const peliculas = await db.collection('usuarios')  
+            
+                const { result } = await peliculas.insertOne( usuario ) 
+            
+                const { ok } = result // extraigo la propiedad "ok" del objeto result; si ok == 1 es que se subió correctamente la pelicula a la coleccion 
+                
+                console.log( result )
+            
+                const respuesta = {
+                    ok,
+                    msg: (ok == 1) ? "Usuario guardado correctamente" : "Error al guardar usuario" //<-- "operador ternario"; es un if mas ninja. Si ok == 1 retorna el primer mensaje, sino (else), el segundo
+                }
+                return response.json(respuesta) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
+            } catch{
+                return response.json( {"ok" : false, "msg" : "Usuario no fue guardado por algún error en el código :("} )
+            }
+
         } 
         response.end("Mira la consola!")
     })
 })
 
-// meetupjs.com.ar 
-// frontend.cafe
+// meetupjs.com.ar  --> comunidad de programadores
+// frontend.cafe    --> comunidad de programadores
 
