@@ -167,7 +167,7 @@ API.post("/v1/pelicula", async (request, response) => {
     
         const { ok } = result // extraigo la propiedad "ok" del objeto result; si ok == 1 es que se subió correctamente la pelicula a la coleccion 
         
-        console.log( result )
+        //console.log( result )
     
         const respuesta = {
             ok,
@@ -241,7 +241,7 @@ API.put("/v1/pelicula/:id", async (request, response) => {
         const nuevaData = { //objeto auxiliar para pasar como parámetro en updateOne(), va a llevar acabo el proceso de actualizacion
             $set : {            //"$set" asi se escribe la propiedad. 
                 //aca van las propiedades que se van a actualizar
-                ...pelicula // "..." asignacion por destructuracion!! Los "..." rompen el objeto y convierten todas sus propiedades en variables sueltas. Le asigno al objeto lo que tiene pelicula pero solo lo asignado a pelicula. Extraigo las propiedades del objeto. Si envie solo una propiedad, solo se va a ctualizar la enviada, si envie varias, todas las enviadas
+                ...pelicula // "..." asignacion por destructuracion!! Los "..." rompen el objeto y convierten todas sus propiedades en variables sueltas. Le asigno al objeto lo que tiene pelicula pero solo lo asignado a pelicula. Extraigo las propiedades del objeto. Si envie solo una propiedad, solo se va a actualizar la enviada, si envie varias, todas las enviadas
             }
         } 
         const { result } = await peliculas.updateOne(busqueda, nuevaData) // busqueda es el ID, nuevaData va a ser un nuevo objeto que va a reemplazar al viejo
@@ -271,8 +271,6 @@ API.delete("/v1/pelicula/:id", async(request, response) => {
 
         const { result } = await peliculas.deleteOne( eliminar )
         const { ok } = result
-
-        //console.log(ok)
     
         const respuesta = { 
         ok, 
@@ -283,6 +281,49 @@ API.delete("/v1/pelicula/:id", async(request, response) => {
         return response.json( {"ok" : "falso", "msg" : "error :("} )
     }
 })
+
+
+/********* REGISTER ***********/
+
+API.post("/v1/register", (request, response) =>{ //crear proceso de registro - usar postman
+    const { name, email, pass } = request.body
+
+    const saltRounds = 10; //<-- CONFIGURACION ESPECIAL PARA LAS CONTRASEÑAS. Le agrega caracteres especiales a la contraseña encriptada. Esos caracteres van a servir para comparar una password q esta entrando con la ya guardada en la DB
+    
+    //USO LA LIBRERIA BCRYPT sumado al metodo hash()
+    bcrypt.hash(pass, saltRounds, async (error, hash) =>{ // pass seria la contraseña en formato plano que llego por el form, le asigno a la contraseña el condimento (salt); luego el call back que captura el error y si no hay error va a obtener el hash (contraseña encriptada)
+
+        if(error){
+            console.log("La pass no se encriptó!")
+        } else{
+            console.log("Tengo las password encriptada, es la siguiente:")
+            console.log( hash )
+
+            const usuario = {
+                name: name,
+                email: email,
+                pass: hash
+            }
+            
+            try{
+                const db = await ConnectionDB() 
+                const peliculas = await db.collection('usuarios')  
+                const { result } = await peliculas.insertOne( usuario ) 
+                const { ok } = result // extraigo la propiedad "ok" del objeto result; si ok == 1 es que se subió correctamente la pelicula a la coleccion 
+            
+                const respuesta = {
+                    ok,
+                    msg: (ok == 1) ? "Usuario guardado correctamente" : "Error al guardar usuario" //<-- "operador ternario"; es un if mas ninja. Si ok == 1 retorna el primer mensaje, sino (else), el segundo
+                }
+                return response.json(respuesta) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
+            } catch{
+                return response.json( {"ok" : false, "msg" : "Usuario no fue guardado por algún error en el código :("} )
+            }
+        } 
+        response.end("Mira la consola!")
+    })
+})
+
 
 /*/////////////// AUTENTICACION //////////////*/ 
 
@@ -302,17 +343,15 @@ API.post("/v1/auth", (request, response) => {
     bcrypt.compare(pass, userDB.pass,(error, result) =>{ //metodo para comparar la password en la DB con la enviada en el form; "pass" es la contraseña plana que enviaron por el formulario; "hash" es la contraseña encriptada guardada en la DB
         console.log(result)
         if( error ){
-            //console.log("No pudimos verificar tu contraseña!")
             return response.json( { auth : false, msg: "No pudimos verificar tu pass"})
         
         } else if(result == false){ // resultado es si la contraseña coincide o no
-            //console.log("la pass no coincide")
+            
             return response.json({ auth : false, msg: "La pass no coincide"})
         } else{
-
-            // SI LA PAS COINCIDE SE VA A GENERAR EL TOKEN 
-            
+            // SI LA PASS COINCIDE SE VA A GENERAR EL TOKEN 
             //const token = jwt.sign(PAYLOAD, CONFIGS, secretKey ) <---- anatomia para ejecutar la funcion JWT
+            
             //sign == firmar!
             const token = jwt.sign({ email: userDB.email, name: userDB.name, expiresIn : 60 * 60}, process.env.JWT_SECRET ) //expiresIn es para decir cuando expira el token; PAYLOAD es la informacion que nosotros queremos guardar codificadamente ; ultimo esta la palabra clave para poder encriptar y generar el token
     
@@ -330,64 +369,11 @@ API.post("/v1/auth", (request, response) => {
             return response.json( { auth : true, msg: "pass coincide"})
         }
     })
-
-    
     
     //response.json( rta )
 })
+
 // how to set time zone en mi scriopt .. modulo set-tz
-
-API.post("/v1/register", (request, response) =>{ //crear proceso de registro - usar postman
-    const { name, email, pass } = request.body
-
-    
-
-    const saltRounds = 10; //<-- CONFIGURACION ESPECIAL PARA LAS CONTRASEÑAS. Le agrega caracteres especiales a la contraseña encriptada. Esos caracteres van a servir para comparar una password q esta entrando con la ya guardada en la DB
-    
-    
-    //USO LA LIBRERIA BCRYPT sumado al metodo hash()
-    bcrypt.hash(pass, saltRounds, async (error, hash) =>{ // pass seria la contraseña en formato plano que llego por el form, le asigno a la contraseña el condimento (salt); luego el call back que captura el error y si no hay error va a obtener el hash (contraseña encriptada)
-
-        if(error){
-            console.log("La pass no se encriptó!")
-        } else{
-            console.log("Tengo las password encriptada, es la siguiente:")
-            console.log( hash )
-            // ACA HAY QUE GUARDAR EL USUARIO CON SU PASS EN LA DB
-            //hacer como en crear peliculas!!
-
-            const usuario = {
-                name: name,
-                email: email,
-                pass: hash
-            }
-            console.log(usuario)
-            
-            try{
-                const db = await ConnectionDB() 
-        
-                const peliculas = await db.collection('usuarios')  
-            
-                const { result } = await peliculas.insertOne( usuario ) 
-            
-                const { ok } = result // extraigo la propiedad "ok" del objeto result; si ok == 1 es que se subió correctamente la pelicula a la coleccion 
-                
-                console.log( result )
-            
-                const respuesta = {
-                    ok,
-                    msg: (ok == 1) ? "Usuario guardado correctamente" : "Error al guardar usuario" //<-- "operador ternario"; es un if mas ninja. Si ok == 1 retorna el primer mensaje, sino (else), el segundo
-                }
-                return response.json(respuesta) //convierte de objeto a json() --> convierte de objeto a json y lo devuelve como respuesta a la peticion HTTP
-            } catch{
-                return response.json( {"ok" : false, "msg" : "Usuario no fue guardado por algún error en el código :("} )
-            }
-
-        } 
-        response.end("Mira la consola!")
-    })
-})
-
 // meetupjs.com.ar  --> comunidad de programadores
 // frontend.cafe    --> comunidad de programadores
 
